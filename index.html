@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Working Capital Estimator — Popstart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --purple:       #5B2D8E;
+  --purple-mid:   #7B3FB5;
+  --purple-light: #EDE7F6;
+  --purple-pale:  #F8F4FD;
+  --orange:       #E8631A;
+  --orange-light: #FFF3E0;
+  --orange-pale:  #FFFAF5;
+  --teal:         #0E7C7B;
+  --teal-light:   #E0F4F4;
+  --ink:          #1C1C2E;
+  --ink-mid:      #3D3D5C;
+  --ink-soft:     #6B6B8A;
+  --line:         #E8E8F0;
+  --white:        #FFFFFF;
+  --bg:           #F7F6FB;
+  --chat-w:       760px;
+  --radius:       14px;
+  --radius-sm:    8px;
+  --shadow:       0 2px 12px rgba(91,45,142,.10);
+  --shadow-lg:    0 8px 32px rgba(91,45,142,.16);
+}
+
+/* ── RESET ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ─────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 24px;
+  height: 58px;
+  box-shadow: 0 1px 6px rgba(91,45,142,.06);
+}
+.topbar-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.2rem;
+  color: var(--purple);
+  letter-spacing: -.5px;
+}
+.topbar-divider { width: 1px; height: 22px; background: var(--line); }
+.topbar-title {
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--ink-mid);
+}
+.topbar-badge {
+  margin-left: auto;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--orange);
+  background: var(--orange-light);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #F5C49A;
+}
+.topbar-module {
+  font-size: .75rem;
+  color: var(--ink-soft);
+  margin-left: 2px;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────── */
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, var(--chat-w)) 340px;
+  gap: 0;
+  max-width: 1380px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 28px 24px;
+  align-items: start;
+}
+
+/* ── SIDEBAR LEFT: Progress ─────────────────────────────────── */
+.sidebar-left {
+  padding: 0 24px 0 0;
+  position: sticky;
+  top: 86px;
+}
+.progress-label {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+}
+.progress-track {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.progress-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: default;
+  opacity: .45;
+  transition: opacity .25s;
+}
+.progress-step.active { opacity: 1; }
+.progress-step.done { opacity: .75; }
+.step-connector {
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  width: 20px; flex-shrink: 0;
+}
+.step-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .6rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  transition: all .25s;
+  flex-shrink: 0;
+}
+.progress-step.active .step-dot {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: var(--white);
+  box-shadow: 0 0 0 4px var(--purple-light);
+}
+.progress-step.done .step-dot {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: var(--white);
+}
+.step-line {
+  width: 2px;
+  height: 20px;
+  background: var(--line);
+  margin: 2px 0;
+}
+.progress-step.done .step-line { background: var(--teal); opacity: .4; }
+.step-info { flex: 1; padding-top: 1px; }
+.step-name {
+  font-size: .8rem;
+  font-weight: 500;
+  color: var(--ink-mid);
+  line-height: 1.2;
+}
+.progress-step.active .step-name { color: var(--purple); font-weight: 600; }
+.step-sub {
+  font-size: .7rem;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+/* ── CHAT AREA ──────────────────────────────────────────────── */
+.chat-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 60vh;
+}
+
+/* ── MESSAGES ───────────────────────────────────────────────── */
+.message {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+  animation: msgIn .3s ease both;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--purple);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif;
+  font-size: .8rem;
+  color: var(--white);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.msg-avatar.user-avatar {
+  background: var(--ink-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .7rem;
+  font-weight: 600;
+}
+.message.user { flex-direction: row-reverse; }
+.message.user .msg-bubble {
+  background: var(--purple);
+  color: var(--white);
+  border-radius: var(--radius) var(--radius-sm) var(--radius) var(--radius);
+}
+.msg-bubble {
+  max-width: 82%;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm) var(--radius) var(--radius) var(--radius);
+  padding: 12px 16px;
+  font-size: .9rem;
+  line-height: 1.6;
+  box-shadow: var(--shadow);
+}
+.msg-bubble p { margin-bottom: 8px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble strong { font-weight: 600; }
+.msg-bubble em { color: var(--purple); font-style: italic; }
+
+/* Gap probe variant */
+.msg-bubble.probe {
+  background: var(--orange-pale);
+  border-color: #F5C49A;
+}
+.msg-bubble.probe::before {
+  content: 'Coaching moment';
+  display: block;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 6px;
+}
+
+/* Calc reveal variant */
+.msg-bubble.calc {
+  background: var(--teal-light);
+  border-color: #9FD4D3;
+}
+.msg-bubble.calc::before {
+  content: 'Calculation';
+  display: block;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 6px;
+}
+.calc-line {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 4px 0;
+}
+.calc-line .num { color: var(--teal); }
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex; gap: 10px; align-items: center;
+  margin-bottom: 6px;
+}
+.typing-dots {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm) var(--radius) var(--radius) var(--radius);
+  padding: 14px 18px;
+  display: flex; gap: 5px; align-items: center;
+  box-shadow: var(--shadow);
+}
+.typing-dots span {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  animation: blink 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes blink {
+  0%, 80%, 100% { opacity: .2; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ── INPUT WIDGETS ──────────────────────────────────────────── */
+.input-widget {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 10px 0 16px 42px;
+  box-shadow: var(--shadow);
+  animation: msgIn .3s ease both;
+}
+.input-widget-label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+/* Chip selects */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 7px 15px;
+  border-radius: 30px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: all .18s;
+  user-select: none;
+}
+.chip:hover {
+  border-color: var(--purple-mid);
+  color: var(--purple);
+  background: var(--purple-pale);
+}
+.chip.selected {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: var(--white);
+}
+.chip.multi.selected {
+  border-color: var(--purple-mid);
+  background: var(--purple-light);
+  color: var(--purple);
+}
+/* Number input */
+.number-input-wrap {
+  display: flex; align-items: center; gap: 10px;
+}
+.currency-prefix {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.number-field {
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: 'DM Serif Display', serif;
+  color: var(--ink);
+  border: none;
+  border-bottom: 2px solid var(--purple-light);
+  background: transparent;
+  padding: 6px 4px;
+  width: 180px;
+  outline: none;
+  transition: border-color .2s;
+}
+.number-field:focus { border-color: var(--purple); }
+.number-field-hint {
+  font-size: .75rem;
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+/* Percent slider */
+.slider-wrap {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.slider-readout {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.8rem;
+  color: var(--purple);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.slider-field {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--purple-light);
+  border-radius: 3px;
+  outline: none;
+}
+.slider-field::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--purple);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(91,45,142,.35);
+  border: 3px solid var(--white);
+}
+.slider-field::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--purple);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(91,45,142,.35);
+  border: 3px solid var(--white);
+}
+.slider-scale {
+  display: flex; justify-content: space-between;
+  font-size: .7rem;
+  color: var(--ink-soft);
+  padding: 0 2px;
+}
+/* Text area */
+.text-area-field {
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .9rem;
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 10px 14px;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  transition: border-color .2s;
+  line-height: 1.5;
+}
+.text-area-field:focus { border-color: var(--purple); background: var(--white); }
+/* Yes/No inline */
+.yesno-row { display: flex; gap: 10px; }
+/* Submit button */
+.widget-submit {
+  margin-top: 14px;
+  padding: 10px 24px;
+  border-radius: 30px;
+  background: var(--purple);
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all .18s;
+  box-shadow: 0 3px 10px rgba(91,45,142,.25);
+}
+.widget-submit:hover { background: var(--purple-mid); transform: translateY(-1px); }
+.widget-submit:disabled {
+  background: var(--line);
+  color: var(--ink-soft);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.widget-skip {
+  margin-top: 14px;
+  margin-left: 10px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: .8rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  padding: 10px 12px;
+}
+.widget-skip:hover { color: var(--purple); }
+
+/* ── SIDEBAR RIGHT: Carousel cards ──────────────────────────── */
+.sidebar-right {
+  padding: 0 0 0 24px;
+  position: sticky;
+  top: 86px;
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+}
+.deliverable-banner {
+  background: linear-gradient(135deg, var(--purple), var(--purple-mid));
+  color: var(--white);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.deliverable-banner .banner-label {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .85;
+}
+.deliverable-banner .banner-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1rem;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+.deliverable-banner .banner-desc {
+  font-size: .75rem;
+  margin-top: 6px;
+  opacity: .9;
+  line-height: 1.45;
+}
+.cards-label {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: all .3s;
+  position: relative;
+}
+.card.placeholder {
+  background: var(--bg);
+  border-style: dashed;
+  opacity: .8;
+}
+.card.populated {
+  box-shadow: var(--shadow);
+  border-color: var(--purple-light);
+  animation: cardIn .5s ease both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: scale(.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.card-title {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+.card-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: .75rem;
+  color: var(--ink-soft);
+  background: var(--purple-pale);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+.card.populated .card-num {
+  background: var(--teal-light);
+  color: var(--teal);
+}
+.card-placeholder-text {
+  font-size: .75rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  line-height: 1.5;
+}
+.card-body { font-size: .78rem; line-height: 1.55; color: var(--ink-mid); }
+.card-body ul { list-style: none; padding: 0; margin: 0; }
+.card-body li {
+  padding: 4px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px dashed var(--line);
+}
+.card-body li:last-child { border-bottom: none; }
+.card-body li.total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 2px solid var(--purple-light);
+  border-bottom: none;
+  font-weight: 600;
+  color: var(--ink);
+}
+.card-body li .k { color: var(--ink-soft); }
+.card-body li .v { font-family: 'DM Serif Display', serif; color: var(--ink); white-space: nowrap; }
+.card-body li.total .v { color: var(--purple); font-size: .95rem; }
+
+.card-body .highlight-figure {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.8rem;
+  color: var(--purple);
+  text-align: center;
+  margin: 6px 0;
+  letter-spacing: -.02em;
+}
+.card-body .caption {
+  font-size: .7rem;
+  color: var(--ink-soft);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.card-body .tier-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--purple-pale);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.card-body .tier-row.recommended {
+  background: linear-gradient(135deg, var(--purple), var(--purple-mid));
+  color: var(--white);
+}
+.card-body .tier-row .tier-name {
+  font-size: .75rem;
+  font-weight: 600;
+}
+.card-body .tier-row .tier-val {
+  font-family: 'DM Serif Display', serif;
+  font-size: .95rem;
+}
+.card-body .tier-row.recommended .tier-name { color: var(--white); }
+.card-body .tier-row.recommended .tier-val { color: var(--white); }
+
+.card-body .mini-note {
+  background: var(--orange-pale);
+  border-left: 3px solid var(--orange);
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: .72rem;
+  color: var(--ink-mid);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ── COMPLETE PANEL ─────────────────────────────────────────── */
+.complete-panel {
+  background: linear-gradient(135deg, var(--purple-pale), var(--orange-pale));
+  border: 1px solid var(--purple-light);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 20px 0 0 42px;
+  text-align: center;
+  display: none;
+}
+.complete-panel.show { display: block; animation: msgIn .5s ease both; }
+.complete-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.complete-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.2rem;
+  color: var(--purple);
+  margin-bottom: 6px;
+}
+.complete-sub {
+  font-size: .85rem;
+  color: var(--ink-soft);
+  margin-bottom: 18px;
+  line-height: 1.55;
+}
+.complete-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  padding: 10px 22px;
+  border-radius: 30px;
+  background: var(--purple);
+  color: var(--white);
+  font-size: .85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all .18s;
+}
+.btn-primary:hover { background: var(--purple-mid); }
+.btn-secondary {
+  padding: 10px 22px;
+  border-radius: 30px;
+  background: transparent;
+  color: var(--purple);
+  font-size: .85rem;
+  font-weight: 600;
+  border: 2px solid var(--purple-light);
+  cursor: pointer;
+  transition: all .18s;
+}
+.btn-secondary:hover { border-color: var(--purple); background: var(--purple-pale); }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 0 1fr 300px; }
+  .sidebar-left { display: none; }
+}
+@media (max-width: 780px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .sidebar-left { display: none; }
+  .sidebar-right {
+    padding: 0;
+    position: static;
+    margin-top: 28px;
+    max-height: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <span class="topbar-logo">Popstart</span>
+  <div class="topbar-divider"></div>
+  <span class="topbar-title">Working Capital Estimator</span>
+  <span class="topbar-module">Module: Funding</span>
+  <span class="topbar-badge">15–25 min</span>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: Step progress -->
+  <aside class="sidebar-left">
+    <div class="progress-label">Session Progress</div>
+    <div class="progress-track" id="progressTrack">
+      <!-- Steps injected by JS -->
+    </div>
+  </aside>
+
+  <!-- CENTER: Chat -->
+  <main class="chat-area" id="chatArea">
+    <div id="typingIndicator" class="typing-indicator" style="display:none">
+      <div class="msg-avatar" style="background:var(--purple)">P</div>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="complete-panel" id="completePanel">
+      <div class="complete-icon">📊</div>
+      <div class="complete-title">Your working capital estimate is ready.</div>
+      <div class="complete-sub">All four cards are populated in the panel to your right. Export the full report or take your number into your next Popstart session.</div>
+      <div class="complete-actions">
+        <button class="btn-primary" onclick="exportEstimate()">Export Full Estimate</button>
+        <button class="btn-secondary" onclick="location.reload()">Start Over</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Deliverable panel -->
+  <aside class="sidebar-right">
+    <div class="deliverable-banner">
+      <div class="banner-label">Your Deliverable</div>
+      <div class="banner-title">Working Capital Estimate Report</div>
+      <div class="banner-desc">A personalised, four-part estimate — built section by section as we go.</div>
+    </div>
+
+    <div class="cards-label">Your Report — builds as we go</div>
+
+    <div class="card placeholder" id="card1">
+      <div class="card-head">
+        <span class="card-title">Monthly Cost Baseline</span>
+        <span class="card-num">01</span>
+      </div>
+      <div class="card-body"><div class="card-placeholder-text">Your monthly cost breakdown will appear here</div></div>
+    </div>
+
+    <div class="card placeholder" id="card2">
+      <div class="card-head">
+        <span class="card-title">Cash Flow Timing Gap</span>
+        <span class="card-num">02</span>
+      </div>
+      <div class="card-body"><div class="card-placeholder-text">Your cash flow timing gap will appear here</div></div>
+    </div>
+
+    <div class="card placeholder" id="card3">
+      <div class="card-head">
+        <span class="card-title">Seasonal &amp; Growth Impact</span>
+        <span class="card-num">03</span>
+      </div>
+      <div class="card-body"><div class="card-placeholder-text">Appears only if your business has peaks or growth coming</div></div>
+    </div>
+
+    <div class="card placeholder" id="card4">
+      <div class="card-head">
+        <span class="card-title">Your Working Capital Estimate</span>
+        <span class="card-num">04</span>
+      </div>
+      <div class="card-body"><div class="card-placeholder-text">Your estimate builds here as we go — with conservative, balanced, and recommended figures</div></div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+const state = {
+  step: 0,
+  answers: {},
+  currency: '$',
+  skipSeasonal: false
+};
+
+const STEPS = [
+  { id: 'intro',    label: 'Session setup',       sub: 'Pace & intro' },
+  { id: 'sectionA', label: 'Monthly Costs',       sub: 'What it costs to run' },
+  { id: 'sectionB', label: 'Timing Gaps',         sub: 'When money comes in' },
+  { id: 'sectionC', label: 'Seasonal / Growth',   sub: 'Peak periods & scale' },
+  { id: 'sectionD', label: 'Buffer & Risk',       sub: 'Safety net preference' },
+  { id: 'complete', label: 'Estimate ready',      sub: 'Review & export' }
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   SCRIPT — full flow definition
+═══════════════════════════════════════════════════════════════ */
+const SCRIPT = [
+  /* 0 — Intro */
+  {
+    phase: 'intro',
+    type: 'message',
+    messages: [
+      `<p>Hi — I'm the Popstart <strong>Working Capital Estimator</strong>. I help small business owners work out exactly how much capital they need to keep their business running confidently.</p>
+       <p>By the end of this session you'll have a four-part report: your <strong>monthly cost baseline</strong>, your <strong>cash flow timing gap</strong>, any <strong>seasonal or growth impact</strong>, and a <strong>recommended buffer range</strong> tailored to your risk tolerance.</p>
+       <p>We can build it in about 15 minutes, or take a deeper look and walk through the full picture — closer to 40. Which works today?</p>`
+    ],
+    widget: {
+      type: 'chips',
+      key: 'pace_preference',
+      options: [
+        { label: 'Quick — 15 min', value: 'quick' },
+        { label: 'Standard — 25 min', value: 'standard' },
+        { label: 'Deep — 40 min', value: 'deep' }
+      ],
+      submitLabel: 'Let\'s go →'
+    },
+    next: 1
+  },
+
+  /* 1 — Section A intro */
+  {
+    phase: 'sectionA',
+    type: 'message',
+    messages: [
+      `<p>Great. Let's start with <strong>what it costs to run your business each month</strong>. We'll build this up line by line — don't worry if some figures are estimates.</p>`
+    ],
+    autoAdvance: 900
+  },
+
+  /* 2 — Rent & utilities */
+  {
+    phase: 'sectionA',
+    type: 'input',
+    messages: [
+      `<p>What do you pay monthly for <strong>rent, utilities, and premises costs</strong>?</p>`
+    ],
+    widget: {
+      type: 'currency',
+      key: 'rent_utilities',
+      hint: 'Enter 0 if none — home-based businesses are common.',
+      submitLabel: 'Next →'
+    },
+    next: 3
+  },
+
+  /* 3 — Payroll */
+  {
+    phase: 'sectionA',
+    type: 'input',
+    messages: [
+      `<p>Total monthly <strong>payroll</strong> — including your own draw if you pay yourself.</p>`
+    ],
+    widget: {
+      type: 'currency',
+      key: 'payroll',
+      hint: 'Include salaries, wages, contractor payments, and your own pay.',
+      submitLabel: 'Next →'
+    },
+    next: 4,
+    afterFn: 'checkOwnerDrawGap'
+  },
+
+  /* 4 — Inventory & supplies */
+  {
+    phase: 'sectionA',
+    type: 'input',
+    messages: [
+      `<p>Monthly spend on <strong>inventory or supplies</strong>?</p>`
+    ],
+    widget: {
+      type: 'currency',
+      key: 'inventory_supplies',
+      hint: 'Enter 0 if your business does not carry inventory.',
+      submitLabel: 'Next →'
+    },
+    next: 5
+  },
+
+  /* 5 — Software & subscriptions */
+  {
+    phase: 'sectionA',
+    type: 'input',
+    messages: [
+      `<p>Monthly spend on <strong>software, tools, and subscriptions</strong>?</p>`
+    ],
+    widget: {
+      type: 'currency',
+      key: 'software_subscriptions',
+      hint: 'Think accounting software, design tools, hosting, CRM, etc.',
+      submitLabel: 'Next →'
+    },
+    next: 6
+  },
+
+  /* 6 — Marketing */
+  {
+    phase: 'sectionA',
+    type: 'input',
+    messages: [
+      `<p>Typical monthly <strong>marketing or advertising spend</strong>?</p>`
+    ],
+    widget: {
+      type: 'currency',
+      key: 'marketing_spend',
+      hint: 'Include ads, sponsorships, content production, and agency fees.',
+      submitLabel: 'Next →'
+    },
+    next: 7
+  },
+
+  /* 7 — Other fixed costs */
+  {
+    phase: 'sectionA',
+    type: 'input',
+    messages: [
+      `<p>Any <strong>other regular monthly costs</strong> I should include? (Insurance, professional fees, fuel, storage — anything that hits every month.)</p>`
+    ],
+    widget: {
+      type: 'currencyWithLabel',
+      key: 'other_fixed_costs',
+      hint: 'Enter 0 if nothing else comes to mind.',
+      submitLabel: 'Next →'
+    },
+    next: 8,
+    afterFn: 'checkIrregularCostsGap'
+  },
+
+  /* 8 — Section A summary / calc reveal */
+  {
+    phase: 'sectionA',
+    type: 'calc',
+    calcType: 'operating_total',
+    next: 9,
+    afterFn: 'populateCard1'
+  },
+
+  /* 9 — Section B intro */
+  {
+    phase: 'sectionB',
+    type: 'message',
+    messages: [
+      `<p>Now let's look at the gap between when you <strong>pay out</strong> and when <strong>money comes in</strong>. This is often where businesses get caught short even when they're profitable.</p>`
+    ],
+    autoAdvance: 1100
+  },
+
+  /* 10 — Customer payment terms */
+  {
+    phase: 'sectionB',
+    type: 'input',
+    messages: [
+      `<p>How quickly do your <strong>customers</strong> typically pay you?</p>`
+    ],
+    widget: {
+      type: 'chips',
+      key: 'customer_payment_terms',
+      options: [
+        { label: 'Same day / cash / card', value: 'same_day' },
+        { label: 'Within 7 days', value: '7_days' },
+        { label: 'Within 30 days', value: '30_days' },
+        { label: '30–60 days', value: '60_days' },
+        { label: '60+ days', value: '90_days' },
+        { label: 'It varies', value: 'varies' }
+      ],
+      submitLabel: 'Next →'
+    },
+    next: 11
+  },
+
+  /* 11 — Customer payment terms days (conditional) */
+  {
+    phase: 'sectionB',
+    type: 'input',
+    skipIf: () => state.answers.customer_payment_terms === 'same_day',
+    messages: [
+      `<p>On average, <strong>how many days after invoicing</strong> do you actually get paid?</p>`
+    ],
+    widget: {
+      type: 'number',
+      key: 'customer_payment_terms_days',
+      hint: 'Use the real-world average, not the invoice terms.',
+      suffix: 'days',
+      submitLabel: 'Next →'
+    },
+    next: 12,
+    afterFn: 'checkPaymentTermsGap'
+  },
+
+  /* 12 — Vendor payment terms */
+  {
+    phase: 'sectionB',
+    type: 'input',
+    messages: [
+      `<p>And when do you need to pay your <strong>suppliers or vendors</strong>?</p>`
+    ],
+    widget: {
+      type: 'chips',
+      key: 'vendor_payment_terms',
+      options: [
+        { label: 'Upfront / before delivery', value: 'upfront' },
+        { label: 'On delivery', value: 'on_delivery' },
+        { label: 'Within 30 days', value: '30_days' },
+        { label: '30–60 days', value: '60_days' },
+        { label: 'It varies', value: 'varies' }
+      ],
+      submitLabel: 'Next →'
+    },
+    next: 13
+  },
+
+  /* 13 — Vendor payment terms days (conditional) */
+  {
+    phase: 'sectionB',
+    type: 'input',
+    skipIf: () => ['upfront', 'on_delivery'].includes(state.answers.vendor_payment_terms),
+    messages: [
+      `<p>How many days do you typically have to pay your vendors?</p>`
+    ],
+    widget: {
+      type: 'number',
+      key: 'vendor_payment_terms_days',
+      suffix: 'days',
+      submitLabel: 'Next →'
+    },
+    next: 14
+  },
+
+  /* 14 — Avg monthly revenue */
+  {
+    phase: 'sectionB',
+    type: 'input',
+    messages: [
+      `<p>What's your <strong>average monthly revenue</strong>? This helps me calculate how much cash is typically in motion.</p>`
+    ],
+    widget: {
+      type: 'currency',
+      key: 'average_monthly_revenue',
+      hint: 'Use a realistic average from the last 3–6 months. Estimates are fine.',
+      submitLabel: 'Next →'
+    },
+    next: 15
+  },
+
+  /* 15 — Section B calc reveal */
+  {
+    phase: 'sectionB',
+    type: 'calc',
+    calcType: 'timing_gap',
+    next: 16,
+    afterFn: 'populateCard2'
+  },
+
+  /* 16 — Seasonality trigger */
+  {
+    phase: 'sectionC',
+    type: 'input',
+    messages: [
+      `<p>Next — does your business have <strong>seasonal peaks</strong>, or are you planning <strong>significant growth</strong> in the next 12 months?</p>`
+    ],
+    widget: {
+      type: 'chips',
+      key: 'has_seasonality_or_growth',
+      options: [
+        { label: 'Yes — seasonal peaks', value: 'seasonal' },
+        { label: 'Yes — planned growth', value: 'growth' },
+        { label: 'Both', value: 'both' },
+        { label: 'No — steady state', value: 'no' }
+      ],
+      submitLabel: 'Next →'
+    },
+    next: 17,
+    afterFn: 'checkSeasonalBranch'
+  },
+
+  /* 17 — Peak months */
+  {
+    phase: 'sectionC',
+    type: 'input',
+    skipIf: () => state.skipSeasonal,
+    messages: [
+      `<p>Which months are your <strong>peak periods</strong>? Select all that apply.</p>`
+    ],
+    widget: {
+      type: 'multi-chips',
+      key: 'peak_months',
+      options: [
+        { label: 'Jan', value: 'jan' }, { label: 'Feb', value: 'feb' },
+        { label: 'Mar', value: 'mar' }, { label: 'Apr', value: 'apr' },
+        { label: 'May', value: 'may' }, { label: 'Jun', value: 'jun' },
+        { label: 'Jul', value: 'jul' }, { label: 'Aug', value: 'aug' },
+        { label: 'Sep', value: 'sep' }, { label: 'Oct', value: 'oct' },
+        { label: 'Nov', value: 'nov' }, { label: 'Dec', value: 'dec' }
+      ],
+      submitLabel: 'Next →'
+    },
+    next: 18
+  },
+
+  /* 18 — Peak spend increase */
+  {
+    phase: 'sectionC',
+    type: 'input',
+    skipIf: () => state.skipSeasonal,
+    messages: [
+      `<p>During those months, roughly what percentage does your spending <strong>increase</strong>?</p>`
+    ],
+    widget: {
+      type: 'slider',
+      key: 'peak_spend_increase_pct',
+      min: 0, max: 200, step: 5, default: 30,
+      submitLabel: 'Next →'
+    },
+    next: 19,
+    afterFn: 'checkSeasonalityGap'
+  },
+
+  /* 19 — Peak duration */
+  {
+    phase: 'sectionC',
+    type: 'input',
+    skipIf: () => state.skipSeasonal,
+    messages: [
+      `<p>How many months does the <strong>peak period</strong> typically last?</p>`
+    ],
+    widget: {
+      type: 'number',
+      key: 'peak_duration_months',
+      suffix: 'months',
+      submitLabel: 'Next →'
+    },
+    next: 20,
+    afterFn: 'populateCard3'
+  },
+
+  /* 20 — Section D intro + risk tolerance */
+  {
+    phase: 'sectionD',
+    type: 'input',
+    messages: [
+      `<p>Last section. Let's talk about your <strong>buffer</strong> — the capital you keep in reserve beyond your operating needs. Think of it as a financial shock absorber.</p>
+       <p>How would you describe your appetite for <strong>financial risk</strong> in your business?</p>`
+    ],
+    widget: {
+      type: 'chips',
+      key: 'risk_tolerance',
+      options: [
+        { label: 'Conservative — strong safety net', value: 'conservative' },
+        { label: 'Balanced — comfortable with some risk', value: 'balanced' },
+        { label: 'Aggressive — I run lean and move fast', value: 'aggressive' }
+      ],
+      submitLabel: 'Next →'
+    },
+    next: 21
+  },
+
+  /* 21 — Existing capital set aside */
+  {
+    phase: 'sectionD',
+    type: 'input',
+    messages: [
+      `<p>Do you have any <strong>working capital already set aside</strong>? If yes, roughly how much?</p>`
+    ],
+    widget: {
+      type: 'currencyWithToggle',
+      key: 'existing_working_capital',
+      hint: 'Choose None if you\'re building from zero. Otherwise enter an estimate.',
+      submitLabel: 'Finish & build estimate →'
+    },
+    next: 22,
+    afterFn: 'checkAggressiveBufferGap'
+  },
+
+  /* 22 — Complete */
+  {
+    phase: 'complete',
+    type: 'complete',
+    messages: [
+      `<p>Your working capital estimate is built. Everything is in the panel to the right — review each card, export the full report, or take your number into your next Popstart session.</p>
+       <p>One thing to consider as a next step: if you need to cover the gap we just identified, the <strong>Funding Strategy</strong> agent looks at all your options for doing that. And if you want grants specifically, the <strong>Grant Finder</strong> will surface programmes you qualify for.</p>`
+    ],
+    afterFn: 'populateCard4'
+  }
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER FUNCTIONS
+═══════════════════════════════════════════════════════════════ */
+function renderProgress() {
+  const track = document.getElementById('progressTrack');
+  const phaseOrder = ['intro','sectionA','sectionB','sectionC','sectionD','complete'];
+  const currentPhase = SCRIPT[state.step] ? SCRIPT[state.step].phase : 'complete';
+  const currentPhaseIdx = phaseOrder.indexOf(currentPhase);
+
+  track.innerHTML = STEPS.map((s, i) => {
+    const phaseIdx = phaseOrder.indexOf(s.id);
+    const isDone = phaseIdx < currentPhaseIdx;
+    const isActive = s.id === currentPhase;
+    const isLast = i === STEPS.length - 1;
+    return `
+      <div class="progress-step ${isDone ? 'done' : ''} ${isActive ? 'active' : ''}">
+        <div class="step-connector">
+          <div class="step-dot">${isDone ? '✓' : i + 1}</div>
+          ${!isLast ? '<div class="step-line"></div>' : ''}
+        </div>
+        <div class="step-info">
+          <div class="step-name">${s.label}</div>
+          <div class="step-sub">${s.sub}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function addMessage(html, variant = '') {
+  const chat = document.getElementById('chatArea');
+  const typing = document.getElementById('typingIndicator');
+  const complete = document.getElementById('completePanel');
+  const msg = document.createElement('div');
+  msg.className = 'message';
+  msg.innerHTML = `
+    <div class="msg-avatar">P</div>
+    <div class="msg-bubble ${variant}">${html}</div>
+  `;
+  chat.insertBefore(msg, typing);
+  scrollToBottom();
+}
+
+function addUserMessage(text) {
+  const chat = document.getElementById('chatArea');
+  const typing = document.getElementById('typingIndicator');
+  const msg = document.createElement('div');
+  msg.className = 'message user';
+  msg.innerHTML = `
+    <div class="msg-avatar user-avatar">YOU</div>
+    <div class="msg-bubble">${text}</div>
+  `;
+  chat.insertBefore(msg, typing);
+  scrollToBottom();
+}
+
+function showTyping() {
+  document.getElementById('typingIndicator').style.display = 'flex';
+  scrollToBottom();
+}
+function hideTyping() {
+  document.getElementById('typingIndicator').style.display = 'none';
+}
+
+function scrollToBottom() {
+  setTimeout(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }, 60);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WIDGET RENDERERS
+═══════════════════════════════════════════════════════════════ */
+function renderWidget(widget) {
+  const chat = document.getElementById('chatArea');
+  const typing = document.getElementById('typingIndicator');
+  const wrap = document.createElement('div');
+  wrap.className = 'input-widget';
+  wrap.id = 'currentWidget';
+
+  let inner = `<div class="input-widget-label">Your response</div>`;
+
+  switch (widget.type) {
+    case 'chips':
+      inner += `<div class="chips" data-type="chips">
+        ${widget.options.map(o =>
+          `<div class="chip" data-value="${o.value}" onclick="selectChip(this, '${widget.key}', false)">${o.label}</div>`
+        ).join('')}
+      </div>`;
+      break;
+
+    case 'multi-chips':
+      inner += `<div class="chips" data-type="multi-chips">
+        ${widget.options.map(o =>
+          `<div class="chip multi" data-value="${o.value}" onclick="selectChip(this, '${widget.key}', true)">${o.label}</div>`
+        ).join('')}
+      </div>`;
+      break;
+
+    case 'currency':
+      inner += `
+        <div class="number-input-wrap">
+          <span class="currency-prefix">${state.currency}</span>
+          <input type="number" class="number-field" id="nfld" placeholder="0" min="0" step="any" oninput="validateCurrency()" />
+        </div>
+        ${widget.hint ? `<div class="number-field-hint">${widget.hint}</div>` : ''}
+      `;
+      break;
+
+    case 'currencyWithLabel':
+      inner += `
+        <div class="number-input-wrap">
+          <span class="currency-prefix">${state.currency}</span>
+          <input type="number" class="number-field" id="nfld" placeholder="0" min="0" step="any" oninput="validateCurrency()" />
+        </div>
+        <textarea class="text-area-field" id="nfldLabel" placeholder="Label it — e.g. insurance, professional fees, fuel..." style="margin-top:10px; min-height:60px;"></textarea>
+        ${widget.hint ? `<div class="number-field-hint">${widget.hint}</div>` : ''}
+      `;
+      break;
+
+    case 'currencyWithToggle':
+      inner += `
+        <div class="yesno-row" id="existingToggle">
+          <div class="chip" data-value="none" onclick="selectExistingToggle(this, 'none')">I'm starting from zero</div>
+          <div class="chip" data-value="yes" onclick="selectExistingToggle(this, 'yes')">I have some set aside</div>
+        </div>
+        <div id="existingAmount" style="display:none; margin-top:14px;">
+          <div class="number-input-wrap">
+            <span class="currency-prefix">${state.currency}</span>
+            <input type="number" class="number-field" id="nfld" placeholder="0" min="0" step="any" oninput="validateCurrency()" />
+          </div>
+          ${widget.hint ? `<div class="number-field-hint">${widget.hint}</div>` : ''}
+        </div>
+      `;
+      break;
+
+    case 'number':
+      inner += `
+        <div class="number-input-wrap">
+          <input type="number" class="number-field" id="nfld" placeholder="0" min="0" step="1" oninput="validateCurrency()" />
+          ${widget.suffix ? `<span class="currency-prefix" style="font-size:.95rem">${widget.suffix}</span>` : ''}
+        </div>
+        ${widget.hint ? `<div class="number-field-hint">${widget.hint}</div>` : ''}
+      `;
+      break;
+
+    case 'slider':
+      inner += `
+        <div class="slider-wrap">
+          <div class="slider-readout" id="sliderReadout">${widget.default}%</div>
+          <input type="range" class="slider-field" id="nfld"
+            min="${widget.min}" max="${widget.max}" step="${widget.step}" value="${widget.default}"
+            oninput="document.getElementById('sliderReadout').textContent = this.value + '%'" />
+          <div class="slider-scale">
+            <span>0%</span><span>50%</span><span>100%</span><span>150%</span><span>200%</span>
+          </div>
+        </div>
+      `;
+      break;
+
+    case 'textarea':
+      inner += `
+        <textarea class="text-area-field" id="nfld" placeholder="${widget.placeholder || ''}"></textarea>
+      `;
+      break;
+  }
+
+  inner += `<button class="widget-submit" id="submitBtn" onclick="submitWidget()">${widget.submitLabel || 'Next →'}</button>`;
+  wrap.innerHTML = inner;
+  wrap._widgetConfig = widget;
+  chat.insertBefore(wrap, typing);
+
+  // Disable submit initially for chip widgets
+  if (['chips', 'multi-chips'].includes(widget.type)) {
+    document.getElementById('submitBtn').disabled = true;
+  }
+
+  scrollToBottom();
+}
+
+function selectChip(el, key, multi) {
+  if (multi) {
+    el.classList.toggle('selected');
+  } else {
+    [...el.parentElement.children].forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  const wrap = document.getElementById('currentWidget');
+  const anySelected = wrap.querySelectorAll('.chip.selected').length > 0;
+  document.getElementById('submitBtn').disabled = !anySelected;
+}
+
+function selectExistingToggle(el, val) {
+  [...el.parentElement.children].forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const amt = document.getElementById('existingAmount');
+  if (val === 'yes') {
+    amt.style.display = 'block';
+  } else {
+    amt.style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
+
+function validateCurrency() {
+  // allow any numeric (including 0) — just enable submit
+  document.getElementById('submitBtn').disabled = false;
+}
+
+function submitWidget() {
+  const wrap = document.getElementById('currentWidget');
+  const widget = wrap._widgetConfig;
+  let value, displayLabel;
+
+  switch (widget.type) {
+    case 'chips': {
+      const sel = wrap.querySelector('.chip.selected');
+      if (!sel) return;
+      value = sel.dataset.value;
+      displayLabel = sel.textContent;
+      break;
+    }
+    case 'multi-chips': {
+      const sel = [...wrap.querySelectorAll('.chip.selected')];
+      if (!sel.length) return;
+      value = sel.map(s => s.dataset.value);
+      displayLabel = sel.map(s => s.textContent).join(', ');
+      break;
+    }
+    case 'currency': {
+      const n = document.getElementById('nfld').value;
+      value = n === '' ? 0 : Number(n);
+      displayLabel = state.currency + (Number(n) || 0).toLocaleString();
+      break;
+    }
+    case 'currencyWithLabel': {
+      const n = document.getElementById('nfld').value;
+      const l = document.getElementById('nfldLabel').value.trim();
+      value = { amount: n === '' ? 0 : Number(n), label: l };
+      displayLabel = state.currency + (Number(n) || 0).toLocaleString() + (l ? ' — ' + l : '');
+      break;
+    }
+    case 'currencyWithToggle': {
+      const toggleSel = wrap.querySelector('.yesno-row .chip.selected');
+      if (!toggleSel) {
+        value = 0;
+        displayLabel = 'Starting from zero';
+      } else if (toggleSel.dataset.value === 'none') {
+        value = 0;
+        displayLabel = 'Starting from zero';
+      } else {
+        const n = document.getElementById('nfld').value;
+        value = n === '' ? 0 : Number(n);
+        displayLabel = state.currency + (Number(n) || 0).toLocaleString() + ' already set aside';
+      }
+      break;
+    }
+    case 'number': {
+      const n = document.getElementById('nfld').value;
+      value = n === '' ? 0 : Number(n);
+      displayLabel = value + (widget.suffix ? ' ' + widget.suffix : '');
+      break;
+    }
+    case 'slider': {
+      const n = document.getElementById('nfld').value;
+      value = Number(n);
+      displayLabel = value + '%';
+      break;
+    }
+    case 'textarea': {
+      value = document.getElementById('nfld').value.trim();
+      if (!value) return;
+      displayLabel = value;
+      break;
+    }
+  }
+
+  state.answers[widget.key] = value;
+  addUserMessage(displayLabel);
+  wrap.remove();
+  renderProgress();
+
+  const step = SCRIPT[state.step];
+  const nextStep = step.next;
+
+  // run afterFn if present
+  if (step.afterFn && typeof window[step.afterFn] === 'function') {
+    setTimeout(() => {
+      window[step.afterFn]();
+      setTimeout(() => advance(nextStep), 400);
+    }, 350);
+  } else {
+    setTimeout(() => advance(nextStep), 400);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADVANCE — walks the script
+═══════════════════════════════════════════════════════════════ */
+function advance(toStep) {
+  state.step = toStep;
+  const step = SCRIPT[state.step];
+  if (!step) return;
+
+  // Skip logic
+  if (step.skipIf && step.skipIf()) {
+    if (step.next != null) return advance(step.next);
+    return;
+  }
+
+  renderProgress();
+
+  if (step.type === 'message') {
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      step.messages.forEach(m => addMessage(m));
+      if (step.autoAdvance) {
+        setTimeout(() => advance(step.next), step.autoAdvance);
+      }
+    }, 700);
+  }
+
+  else if (step.type === 'input') {
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      step.messages.forEach(m => addMessage(m));
+      setTimeout(() => renderWidget(step.widget), 350);
+    }, 650);
+  }
+
+  else if (step.type === 'calc') {
+    setTimeout(() => renderCalc(step.calcType), 600);
+    if (step.afterFn && typeof window[step.afterFn] === 'function') {
+      setTimeout(() => window[step.afterFn](), 1000);
+    }
+    setTimeout(() => advance(step.next), 2200);
+  }
+
+  else if (step.type === 'complete') {
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      step.messages.forEach(m => addMessage(m));
+      if (step.afterFn) window[step.afterFn]();
+      document.getElementById('completePanel').classList.add('show');
+      scrollToBottom();
+    }, 700);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CALCULATIONS
+═══════════════════════════════════════════════════════════════ */
+function calcMonthlyOperatingTotal() {
+  const a = state.answers;
+  const other = typeof a.other_fixed_costs === 'object' ? a.other_fixed_costs.amount : (a.other_fixed_costs || 0);
+  return (Number(a.rent_utilities) || 0)
+    + (Number(a.payroll) || 0)
+    + (Number(a.inventory_supplies) || 0)
+    + (Number(a.software_subscriptions) || 0)
+    + (Number(a.marketing_spend) || 0)
+    + (Number(other) || 0);
+}
+
+function calcTimingGapDays() {
+  const a = state.answers;
+  const customerDays = a.customer_payment_terms === 'same_day'
+    ? 0
+    : (Number(a.customer_payment_terms_days) || 0);
+  const vendorDays = ['upfront', 'on_delivery'].includes(a.vendor_payment_terms)
+    ? 0
+    : (Number(a.vendor_payment_terms_days) || 0);
+  return Math.max(0, customerDays - vendorDays);
+}
+
+function calcTimingGapCoverage() {
+  const a = state.answers;
+  const gapDays = calcTimingGapDays();
+  const dailyRev = (Number(a.average_monthly_revenue) || 0) / 30;
+  return Math.round(dailyRev * gapDays);
+}
+
+function calcSeasonalImpact() {
+  const a = state.answers;
+  if (state.skipSeasonal) return 0;
+  const monthly = calcMonthlyOperatingTotal();
+  const pct = (Number(a.peak_spend_increase_pct) || 0) / 100;
+  const months = Number(a.peak_duration_months) || 0;
+  return Math.round(monthly * pct * months);
+}
+
+function calcBufferRange() {
+  const baseline = calcMonthlyOperatingTotal();
+  const timing = calcTimingGapCoverage();
+  const seasonal = calcSeasonalImpact();
+  const total = baseline + timing + seasonal;
+
+  const conservative = Math.round(total * 1.5);
+  const balanced = Math.round(total * 1.25);
+  const aggressive = Math.round(total * 1.1);
+
+  let recommended;
+  switch (state.answers.risk_tolerance) {
+    case 'conservative': recommended = conservative; break;
+    case 'balanced':     recommended = balanced; break;
+    case 'aggressive':   recommended = aggressive; break;
+    default:             recommended = balanced;
+  }
+
+  const existing = Number(state.answers.existing_working_capital) || 0;
+  const net = Math.max(0, recommended - existing);
+
+  return { baseline, timing, seasonal, total, conservative, balanced, aggressive, recommended, existing, net };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CALC REVEAL — inline in chat
+═══════════════════════════════════════════════════════════════ */
+function renderCalc(type) {
+  if (type === 'operating_total') {
+    const total = calcMonthlyOperatingTotal();
+    addMessage(`
+      <p>Here's your monthly operating baseline:</p>
+      <div class="calc-line"><span class="num">${fmt(total)}</span> / month</div>
+      <p style="font-size:.8rem; color: var(--ink-soft); margin-top:6px;">That's the minimum you need on hand each month just to keep the lights on.</p>
+    `, 'calc');
+  }
+  if (type === 'timing_gap') {
+    const days = calcTimingGapDays();
+    const coverage = calcTimingGapCoverage();
+    if (days === 0) {
+      addMessage(`
+        <p>Your customer and vendor terms line up nicely — no cash flow gap to bridge.</p>
+      `, 'calc');
+    } else {
+      addMessage(`
+        <p>Your cash flow timing gap:</p>
+        <div class="calc-line"><span class="num">${days} days</span> between paying out and getting paid</div>
+        <div class="calc-line"><span class="num">${fmt(coverage)}</span> needed to bridge it</div>
+        <p style="font-size:.8rem; color: var(--ink-soft); margin-top:6px;">This is capital tied up in the gap between you paying vendors and your customers paying you.</p>
+      `, 'calc');
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GAP PROBES
+═══════════════════════════════════════════════════════════════ */
+function checkOwnerDrawGap() {
+  // Trigger if payroll is zero or very low ( < $2000 ) — proxy for forgetting owner draw
+  if (Number(state.answers.payroll) < 2000) {
+    addMessage(`
+      <p>Quick check — <strong>have you included your own pay in that figure?</strong> A lot of early-stage owners forget to factor themselves in, but your business still needs to support you. If your draw isn't in there yet, it should be.</p>
+      <p style="font-size:.8rem; color: var(--ink-soft); margin-top:8px;">No action needed right now — just something to think about. You can edit this later if needed.</p>
+    `, 'probe');
+  }
+}
+
+function checkIrregularCostsGap() {
+  const other = typeof state.answers.other_fixed_costs === 'object'
+    ? state.answers.other_fixed_costs.amount
+    : state.answers.other_fixed_costs;
+  if (Number(other) === 0 || !other) {
+    addMessage(`
+      <p>One thing worth flagging — <strong>are there costs that don't hit every month?</strong> Annual software renewals, quarterly tax payments, equipment maintenance, insurance premiums — these are easy to miss on a monthly view but they affect how much buffer you actually need. We'll factor that into your buffer range at the end.</p>
+    `, 'probe');
+  }
+}
+
+function checkPaymentTermsGap() {
+  // If customer days is ≤30 but might be optimistic
+  if (Number(state.answers.customer_payment_terms_days) <= 30 && Number(state.answers.customer_payment_terms_days) > 0) {
+    addMessage(`
+      <p>One thing to sanity check — <strong>are those the terms on your invoices, or when cash actually lands?</strong> In early-stage businesses there's often a gap between the two. Worth going with the real-world average rather than what's written on the invoice.</p>
+    `, 'probe');
+  }
+}
+
+function checkSeasonalBranch() {
+  if (state.answers.has_seasonality_or_growth === 'no') {
+    state.skipSeasonal = true;
+    // fill placeholder for card 3
+    addMessage(`<p>Got it — steady state. We'll skip the seasonal section and go straight to buffer.</p>`);
+  }
+}
+
+function checkSeasonalityGap() {
+  if (Number(state.answers.peak_spend_increase_pct) < 20 && Number(state.answers.peak_spend_increase_pct) > 0) {
+    addMessage(`
+      <p>That increase feels relatively modest — <strong>does it account for staffing, inventory build-up, and marketing during that period?</strong> Those costs tend to compound during peak months and it's easy to underestimate the full picture.</p>
+    `, 'probe');
+  }
+}
+
+function checkAggressiveBufferGap() {
+  if (state.answers.risk_tolerance === 'aggressive' && Number(state.answers.existing_working_capital) === 0) {
+    addMessage(`
+      <p>Running lean is a valid strategy — but <strong>even aggressive operators usually keep a floor in reserve</strong> for payment delays or surprises. Your recommended figure below is calibrated for an aggressive profile, but it's not zero. Worth knowing what your minimum looks like before you commit to running without one.</p>
+    `, 'probe');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD POPULATION
+═══════════════════════════════════════════════════════════════ */
+function fmt(n) {
+  return state.currency + Math.round(Number(n) || 0).toLocaleString();
+}
+
+function populateCard1() {
+  const a = state.answers;
+  const total = calcMonthlyOperatingTotal();
+  const other = typeof a.other_fixed_costs === 'object' ? a.other_fixed_costs.amount : (a.other_fixed_costs || 0);
+  const otherLabel = typeof a.other_fixed_costs === 'object' && a.other_fixed_costs.label
+    ? a.other_fixed_costs.label
+    : 'Other';
+  const rows = [
+    ['Rent & utilities', Number(a.rent_utilities) || 0],
+    ['Payroll', Number(a.payroll) || 0],
+    ['Inventory & supplies', Number(a.inventory_supplies) || 0],
+    ['Software & subscriptions', Number(a.software_subscriptions) || 0],
+    ['Marketing', Number(a.marketing_spend) || 0]
+  ];
+  if (Number(other) > 0) rows.push([otherLabel, Number(other)]);
+
+  const card = document.getElementById('card1');
+  card.classList.remove('placeholder');
+  card.classList.add('populated');
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="card-title">Monthly Cost Baseline</span>
+      <span class="card-num">01</span>
+    </div>
+    <div class="card-body">
+      <ul>
+        ${rows.map(r => `<li><span class="k">${r[0]}</span><span class="v">${fmt(r[1])}</span></li>`).join('')}
+        <li class="total"><span class="k">Monthly total</span><span class="v">${fmt(total)}</span></li>
+      </ul>
+    </div>
+  `;
+}
+
+function populateCard2() {
+  const gapDays = calcTimingGapDays();
+  const coverage = calcTimingGapCoverage();
+  const a = state.answers;
+
+  const customerLabel = termLabel('customer', a.customer_payment_terms, a.customer_payment_terms_days);
+  const vendorLabel = termLabel('vendor', a.vendor_payment_terms, a.vendor_payment_terms_days);
+
+  const card = document.getElementById('card2');
+  card.classList.remove('placeholder');
+  card.classList.add('populated');
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="card-title">Cash Flow Timing Gap</span>
+      <span class="card-num">02</span>
+    </div>
+    <div class="card-body">
+      <ul>
+        <li><span class="k">Customer terms</span><span class="v">${customerLabel}</span></li>
+        <li><span class="k">Vendor terms</span><span class="v">${vendorLabel}</span></li>
+        <li><span class="k">Gap</span><span class="v">${gapDays} days</span></li>
+      </ul>
+      <div class="highlight-figure">${fmt(coverage)}</div>
+      <div class="caption">capital to bridge the gap</div>
+      ${gapDays === 0
+        ? '<div class="mini-note">Your terms align nicely — no bridging capital needed.</div>'
+        : ''}
+    </div>
+  `;
+}
+
+function termLabel(type, terms, days) {
+  const map = {
+    customer: {
+      'same_day': 'Same day',
+      '7_days': '≤ 7 days',
+      '30_days': '≤ 30 days',
+      '60_days': '30–60 days',
+      '90_days': '60+ days',
+      'varies': 'Varies'
+    },
+    vendor: {
+      'upfront': 'Upfront',
+      'on_delivery': 'On delivery',
+      '30_days': '≤ 30 days',
+      '60_days': '30–60 days',
+      'varies': 'Varies'
+    }
+  };
+  const label = map[type][terms] || terms;
+  if (days && !['same_day','upfront','on_delivery'].includes(terms)) {
+    return label + ' (avg ' + days + 'd)';
+  }
+  return label;
+}
+
+function populateCard3() {
+  if (state.skipSeasonal) {
+    const card = document.getElementById('card3');
+    card.classList.remove('placeholder');
+    card.classList.add('populated');
+    card.style.opacity = '.6';
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="card-title">Seasonal &amp; Growth Impact</span>
+        <span class="card-num">03</span>
+      </div>
+      <div class="card-body">
+        <div class="card-placeholder-text">Not applicable — steady state business.</div>
+      </div>
+    `;
+    return;
+  }
+  const a = state.answers;
+  const seasonal = calcSeasonalImpact();
+  const monthlyExtra = Math.round(calcMonthlyOperatingTotal() * ((Number(a.peak_spend_increase_pct) || 0) / 100));
+  const monthNames = { jan:'Jan', feb:'Feb', mar:'Mar', apr:'Apr', may:'May', jun:'Jun',
+                       jul:'Jul', aug:'Aug', sep:'Sep', oct:'Oct', nov:'Nov', dec:'Dec' };
+  const peaks = (Array.isArray(a.peak_months) ? a.peak_months : [])
+    .map(m => monthNames[m] || m).join(', ') || '—';
+
+  const card = document.getElementById('card3');
+  card.classList.remove('placeholder');
+  card.classList.add('populated');
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="card-title">Seasonal &amp; Growth Impact</span>
+      <span class="card-num">03</span>
+    </div>
+    <div class="card-body">
+      <ul>
+        <li><span class="k">Peak months</span><span class="v">${peaks}</span></li>
+        <li><span class="k">Spend increase</span><span class="v">${Number(a.peak_spend_increase_pct) || 0}%</span></li>
+        <li><span class="k">Duration</span><span class="v">${Number(a.peak_duration_months) || 0} mo</span></li>
+        <li><span class="k">Extra per month</span><span class="v">${fmt(monthlyExtra)}</span></li>
+      </ul>
+      <div class="highlight-figure">${fmt(seasonal)}</div>
+      <div class="caption">additional capital during peak</div>
+    </div>
+  `;
+}
+
+function populateCard4() {
+  const r = calcBufferRange();
+  const rec = state.answers.risk_tolerance || 'balanced';
+  const rows = [
+    { key: 'conservative', label: 'Conservative', val: r.conservative },
+    { key: 'balanced', label: 'Balanced', val: r.balanced },
+    { key: 'aggressive', label: 'Aggressive', val: r.aggressive }
+  ];
+
+  const card = document.getElementById('card4');
+  card.classList.remove('placeholder');
+  card.classList.add('populated');
+
+  let buildNote = '';
+  if (r.existing > 0) {
+    if (r.existing >= r.recommended) {
+      buildNote = `<div class="mini-note"><strong>You're well covered.</strong> You already have ${fmt(r.existing)} set aside — that's roughly ${(r.existing / r.baseline).toFixed(1)} months of operating runway.</div>`;
+    } else {
+      buildNote = `<div class="mini-note">You have ${fmt(r.existing)} already set aside. The figure above is the <strong>additional capital</strong> you need to reach your recommended buffer.</div>`;
+    }
+  }
+
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="card-title">Your Working Capital Estimate</span>
+      <span class="card-num">04</span>
+    </div>
+    <div class="card-body">
+      <ul>
+        <li><span class="k">Baseline (1 mo)</span><span class="v">${fmt(r.baseline)}</span></li>
+        <li><span class="k">Timing gap</span><span class="v">${fmt(r.timing)}</span></li>
+        ${r.seasonal > 0 ? `<li><span class="k">Seasonal / growth</span><span class="v">${fmt(r.seasonal)}</span></li>` : ''}
+        <li class="total"><span class="k">Working capital need</span><span class="v">${fmt(r.total)}</span></li>
+      </ul>
+      <div style="margin-top:12px;">
+        ${rows.map(row => `
+          <div class="tier-row ${row.key === rec ? 'recommended' : ''}">
+            <span class="tier-name">${row.label}${row.key === rec ? ' — recommended' : ''}</span>
+            <span class="tier-val">${fmt(row.val)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="highlight-figure" style="margin-top:10px;">${fmt(r.net)}</div>
+      <div class="caption">${r.existing > 0 && r.existing < r.recommended ? 'additional buffer needed' : 'recommended buffer'}</div>
+      ${buildNote}
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════════════════════════ */
+function exportEstimate() {
+  const a = state.answers;
+  const r = calcBufferRange();
+  const dateStr = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  let txt = '';
+  txt += '═══════════════════════════════════════════════════════════\n';
+  txt += '  POPSTART — WORKING CAPITAL ESTIMATE\n';
+  txt += '  Generated: ' + dateStr + '\n';
+  txt += '═══════════════════════════════════════════════════════════\n\n';
+
+  txt += '── CARD 01 · MONTHLY COST BASELINE ────────────────────\n\n';
+  txt += '  Rent & utilities        ' + fmt(a.rent_utilities || 0) + '\n';
+  txt += '  Payroll                 ' + fmt(a.payroll || 0) + '\n';
+  txt += '  Inventory & supplies    ' + fmt(a.inventory_supplies || 0) + '\n';
+  txt += '  Software & subs         ' + fmt(a.software_subscriptions || 0) + '\n';
+  txt += '  Marketing               ' + fmt(a.marketing_spend || 0) + '\n';
+  const other = typeof a.other_fixed_costs === 'object' ? a.other_fixed_costs.amount : a.other_fixed_costs;
+  const otherLabel = typeof a.other_fixed_costs === 'object' && a.other_fixed_costs.label ? a.other_fixed_costs.label : 'Other';
+  if (Number(other) > 0) txt += '  ' + otherLabel.padEnd(24) + fmt(other) + '\n';
+  txt += '  ─────────────────────────────────\n';
+  txt += '  MONTHLY TOTAL           ' + fmt(r.baseline) + '\n\n';
+
+  txt += '── CARD 02 · CASH FLOW TIMING GAP ─────────────────────\n\n';
+  txt += '  Customer terms          ' + termLabel('customer', a.customer_payment_terms, a.customer_payment_terms_days) + '\n';
+  txt += '  Vendor terms            ' + termLabel('vendor', a.vendor_payment_terms, a.vendor_payment_terms_days) + '\n';
+  txt += '  Gap                     ' + calcTimingGapDays() + ' days\n';
+  txt += '  Capital to bridge       ' + fmt(r.timing) + '\n\n';
+
+  if (!state.skipSeasonal) {
+    txt += '── CARD 03 · SEASONAL / GROWTH IMPACT ─────────────────\n\n';
+    const monthNames = { jan:'Jan',feb:'Feb',mar:'Mar',apr:'Apr',may:'May',jun:'Jun',jul:'Jul',aug:'Aug',sep:'Sep',oct:'Oct',nov:'Nov',dec:'Dec' };
+    const peaks = (Array.isArray(a.peak_months) ? a.peak_months : []).map(m => monthNames[m] || m).join(', ') || '—';
+    txt += '  Peak months             ' + peaks + '\n';
+    txt += '  Spend increase          ' + (a.peak_spend_increase_pct || 0) + '%\n';
+    txt += '  Duration                ' + (a.peak_duration_months || 0) + ' months\n';
+    txt += '  Extra capital needed    ' + fmt(r.seasonal) + '\n\n';
+  } else {
+    txt += '── CARD 03 · SEASONAL / GROWTH IMPACT ─────────────────\n\n';
+    txt += '  Not applicable — steady state business.\n\n';
+  }
+
+  txt += '── CARD 04 · WORKING CAPITAL ESTIMATE ─────────────────\n\n';
+  txt += '  Baseline (1 month)      ' + fmt(r.baseline) + '\n';
+  txt += '  Timing gap              ' + fmt(r.timing) + '\n';
+  if (r.seasonal > 0) txt += '  Seasonal / growth       ' + fmt(r.seasonal) + '\n';
+  txt += '  ─────────────────────────────────\n';
+  txt += '  Total need              ' + fmt(r.total) + '\n\n';
+
+  txt += '  BUFFER RANGE:\n';
+  txt += '  Conservative (1.5×)     ' + fmt(r.conservative) + '\n';
+  txt += '  Balanced     (1.25×)    ' + fmt(r.balanced) + '\n';
+  txt += '  Aggressive   (1.1×)     ' + fmt(r.aggressive) + '\n\n';
+
+  txt += '  Your risk profile:      ' + (a.risk_tolerance || 'balanced') + '\n';
+  txt += '  Recommended buffer:     ' + fmt(r.recommended) + '\n';
+  if (r.existing > 0) {
+    txt += '  Already set aside:      ' + fmt(r.existing) + '\n';
+    txt += '  ADDITIONAL NEEDED:      ' + fmt(r.net) + '\n';
+  }
+
+  txt += '\n═══════════════════════════════════════════════════════════\n';
+  txt += '  Note: This estimate is a planning tool, not precise\n';
+  txt += '  financial advice. Review with an advisor before\n';
+  txt += '  committing to a funding strategy.\n';
+  txt += '═══════════════════════════════════════════════════════════\n';
+
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a2 = document.createElement('a');
+  a2.href = url;
+  a2.download = 'popstart-working-capital-estimate.txt';
+  document.body.appendChild(a2);
+  a2.click();
+  document.body.removeChild(a2);
+  URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════════ */
+function init() {
+  renderProgress();
+  advance(0);
+}
+init();
+</script>
+
+</body>
+</html>
