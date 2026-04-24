@@ -821,7 +821,7 @@ const SCRIPT = [
   /* 0 — Intro */
   {
     phase: 'intro',
-    type: 'message',
+    type: 'input',
     messages: [
       `<p>Hi — I'm the Popstart <strong>Working Capital Estimator</strong>. I help small business owners work out exactly how much capital they need to keep their business running confidently.</p>
        <p>By the end of this session you'll have a four-part report: your <strong>monthly cost baseline</strong>, your <strong>cash flow timing gap</strong>, any <strong>seasonal or growth impact</strong>, and a <strong>recommended buffer range</strong> tailored to your risk tolerance.</p>
@@ -847,7 +847,8 @@ const SCRIPT = [
     messages: [
       `<p>Great. Let's start with <strong>what it costs to run your business each month</strong>. We'll build this up line by line — don't worry if some figures are estimates.</p>`
     ],
-    autoAdvance: 900
+    autoAdvance: 900,
+    next: 2
   },
 
   /* 2 — Rent & utilities */
@@ -964,7 +965,8 @@ const SCRIPT = [
     messages: [
       `<p>Now let's look at the gap between when you <strong>pay out</strong> and when <strong>money comes in</strong>. This is often where businesses get caught short even when they're profitable.</p>`
     ],
-    autoAdvance: 1100
+    autoAdvance: 1100,
+    next: 10
   },
 
   /* 10 — Customer payment terms */
@@ -1687,8 +1689,8 @@ function checkPaymentTermsGap() {
 function checkSeasonalBranch() {
   if (state.answers.has_seasonality_or_growth === 'no') {
     state.skipSeasonal = true;
-    // fill placeholder for card 3
     addMessage(`<p>Got it — steady state. We'll skip the seasonal section and go straight to buffer.</p>`);
+    populateCard3();
   }
 }
 
